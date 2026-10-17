@@ -1,15 +1,20 @@
-# RAG Failure Modes — Empirical Validation Runner (Phase 3A)
+# rag_eval — Evaluation Pipeline
 
-Scope of this repo right now: **the real public datasets (RGB, Lost in the
-Middle) are downloaded and parsed, the full retrieve-then-inject pipeline
-(embedding + FlatIndex retrieval, retrieval logging, trials, evaluation) is
-wired end-to-end, and everything has been verified with `--dry-run` against
-the real 90-item sample using `MockAdapter` — zero paid API calls, zero
-cost, zero real model output.** No real model API has been called and no
-experimental results exist yet. The real-run path in
-`runner/run_generation.py` is intentionally guarded with a `SystemExit`
-until the checklist at the bottom of this file is complete — this prevents
-any accidental API spend.
+The evaluation pipeline behind the empirical validation in
+*Diagnosing RAG Failures: A Taxonomy of Failure Modes in Retrieval-Augmented
+Generation*. It runs three controlled failure-mode experiments (Retrieval
+Blindness, Retrieval Noise, Evidence Ignorance) on 90 items sampled from the
+public RGB and Lost in the Middle benchmarks, with one shared
+retrieve-then-inject pipeline, one prompt template, and one evaluation
+protocol for every model.
+
+**Status:** the real runs reported in the paper are complete — 900 API calls
+(450 each for Claude Sonnet 4.6 and Llama 3.3 70B Instruct), made
+2026-08-15 to 2026-08-17. GPT-4.1 is wired in but was deferred to future work.
+Real-run outputs (`logs/raw_calls/`, `logs/retrieval_log.jsonl`,
+`logs/results_*.csv`) are excluded by `.gitignore` and are not part of this
+repository. The dry-run evidence in `logs/dry_run/` and the no-context
+baseline in `logs/results_no_context_180.csv` are included.
 
 See `data/dataset_manifest.json` for full dataset provenance (repo URLs,
 commit hashes, file hashes, download date, the exact 90 selected item IDs,
@@ -111,9 +116,8 @@ https://platform.claude.com/docs/en/about-claude/models at setup time).
 CLAUDE_BASE_URL=https://openrouter.ai/api/v1
 CLAUDE_API_KEY=<your openrouter key>
 ```
-Adopted 2026-08-17 because direct Anthropic console billing (Stripe)
-repeatedly failed and, on one retry, requested an SSN/TIN unrelated to a
-plain API-credit purchase. OpenRouter proxies the exact same Claude Sonnet
+Adopted 2026-08-17 because direct Anthropic console billing repeatedly
+failed. OpenRouter proxies the exact same Claude Sonnet
 4.6 model with no per-token markup — you pay a one-time ~5.5% fee only on
 credit top-ups (see https://openrouter.ai/pricing). `models.claude.model_id`
 must then be OpenRouter's slug, `anthropic/claude-sonnet-4.6` (confirmed at
@@ -232,7 +236,7 @@ in the paper's Evaluation Protocol and Limitations sections — do not present
 
 ## Dry-run verification (no API calls, no cost)
 
-This is the only mode you should run right now. It uses the REAL 90 sampled
+Run this first to verify your setup. It uses the REAL 90 sampled
 items and REAL embedding-based retrieval (sentence-transformers +
 FlatIndex) — only the generator call is mocked.
 
@@ -256,89 +260,31 @@ raw-call row's `answer_text` reads
 `[MOCK OUTPUT - NOT A REAL MODEL RESPONSE - DRY RUN ONLY]` and `is_mock` is
 `True` — this output must never be copied into `logs/raw_calls/` or cited
 anywhere as a result. Unit tests: `python -m unittest discover tests`
-(34 tests, all passing as of this delivery).
+(51 tests; 9 are skipped unless the raw datasets are present in `data/raw/`).
 
-## What real runs will require and cost
+## Running the real experiment
 
-Not part of this Phase 2 delivery, for reference only: the Phase 1 audit
-estimated total external API spend for a run of this size at roughly
-$10–$20 across all three models combined (input/output token pricing per
-provider), which is not the binding constraint — your time wiring up the
-two dataset loaders and confirming the checklist below is.
+Real runs make paid API calls. The paper's full run (900 calls across two
+models) cost about $1.86 in total ($1.82 Claude, $0.04 Llama).
 
-## Local setup checklist — complete all of this before a real run
+1. Download the raw datasets into `data/raw/` (see "Datasets" above).
+2. `cp .env.example .env` and fill in your keys for the hosts you use
+   (see "Claude host setup" and "Llama host setup"). Never commit `.env`.
+3. Run:
+   ```bash
+   python -m runner.run_generation   # real calls to the configured models
+   python -m eval.run_eval           # builds results_aggregated.csv
+                                     # and results_ablation_sensitivity.csv
+   ```
 
-Datasets, loaders, retrieval, logging, trial wiring, and all three
-model IDs are already done. What's left is your API keys and a final
-decision sign-off:
+The runner is resumable and checks each saved call's `model_id` against the
+configured one, so results from different hosts are never mixed.
 
-1. [x] Download RGB and Lost in the Middle raw files into
-       `data/raw/rgb/` and `data/raw/lost_in_the_middle/`. Done — see
-       `data/dataset_manifest.json` for provenance.
-2. [x] Implement the parsing logic in `data/rgb_loader.py` and
-       `data/lost_in_the_middle_loader.py`, sampling exactly 30 items per
-       mode with `seed=42`. Done — 90/90 items load and pass validation.
-3. [x] Pin the exact Claude Sonnet 4.6 model-id string in
-       `config/experiment.yaml -> models.claude.model_id`. Done (2026-08-14):
-       `claude-sonnet-4-6`, confirmed against
-       [platform.claude.com/docs/en/about-claude/models/model-ids-and-versions](https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions).
-       Re-verify at setup time in case Anthropic changes this later.
-4. [x] Choose your Llama 3.3 70B host and pin the exact `models.llama.model_id`
-       string for that host. Done (2026-08-14): defaulted to **DeepInfra**,
-       `meta-llama/Llama-3.3-70B-Instruct` (the standard, non-Turbo/non-quantized
-       variant, matching the paper's stated model name), confirmed against
-       [deepinfra.com/meta-llama/Llama-3.3-70B-Instruct/api](https://deepinfra.com/meta-llama/Llama-3.3-70B-Instruct/api).
-       You still need to set `LLAMA_BASE_URL=https://api.deepinfra.com/v1/openai`
-       and `LLAMA_API_KEY` in `.env`. If you switch hosts (Together/Groq/Fireworks),
-       update `models.llama.model_id` too — the string differs per host.
-5. [x] Verify the GPT-4.1 output-length parameter name against current
-       OpenAI docs. Done (2026-08-14): GPT-4.1 requires `max_completion_tokens`,
-       not `max_tokens` (confirmed against OpenAI's official Help Center article
-       ["Controlling the length of OpenAI model responses"](https://help.openai.com/en/articles/5072518)) —
-       `models/openai_adapter.py` has been updated accordingly.
-6. [x] Trial counts confirmed (2026-08-14): `clean_condition: 1`,
-       `stress_condition: 3`. No change from the provisional Phase 1 value.
-7. [x] Prompt template confirmed as-is (2026-08-14) — no changes to
-       `config/prompt_template.txt`.
-8. [x] Faithfulness/groundedness scope confirmed (2026-08-14): **proxy
-       metrics only** for this v2 (exact match, token F1, retrieval
-       recall/precision@k/nDCG/gold_rank, ablation sensitivity). LLM-as-judge
-       explicitly deferred, not implemented — do not claim a faithfulness
-       result exists in this version.
-9. [x] Manual error-analysis sample size confirmed (2026-08-14): 30 cases
-       (10 per failure mode). Assistant drafts labels per
-       `error_analysis/labeling_rubric.md` from the real failed cases;
-       final labels require the paper author's review and sign-off before
-       use in the paper.
-10. [x] Real-run guard removed (2026-08-14, explicit user approval) —
-        `runner/run_generation.py main()` now calls `run_real_mode(config)`
-        directly. It still hard-fails with a clear `RuntimeError` (not a
-        silent fallback) if any of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
-        or `LLAMA_API_KEY` is missing — see `models/anthropic_adapter.py` /
-        `models/openai_adapter.py` / `models/llama_adapter.py`.
-11. [ ] **The only step left that requires you**: `cp .env.example .env`
-        and fill in real `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
-        `LLAMA_API_KEY` (never commit `.env`) — `load_dotenv()` is already
-        wired into `runner/run_generation.py main()`.
-12. [ ] `pip install -r requirements.txt`, then run **on your own
-        machine** (real paid API calls must not run from Computer, per
-        project rules):
-        ```bash
-        python -m runner.run_generation   # real calls to all 3 models
-        python -m eval.run_eval           # builds results_aggregated.csv
-                                           # and results_ablation_sensitivity.csv
-        ```
-        Estimated cost across all 3 models at the confirmed design (90
-        items, 450 calls/model): roughly $3–$10 total, based on
-        [Anthropic](https://www.finout.io/blog/anthropic-api-pricing),
-        [OpenAI](https://developers.openai.com/api/docs/models/gpt-4.1), and
-        [DeepInfra](https://www.requesty.ai/models/deepinfra/meta-llama-llama-3.3-70b-instruct)
-        pricing checked 2026-08-14 and real context sizes from the Phase 3A
-        dry-run retrieval logs. Send back `logs/raw_calls/`,
-        `logs/retrieval_log.jsonl`, and the two `results_*.csv` files
-        (or sync them into the project repo) for Phase 3D.
+## Scope notes
 
-Nothing past this checklist — real runs, analysis, and error labeling — is
-in scope for this delivery. Retrieval recall/precision@k/nDCG/gold_rank are
-implemented and wired; faithfulness/groundedness/LLM-as-judge is explicitly
-NOT implemented, per the project's integrity rules.
+Retrieval recall, precision@k, nDCG, and gold rank are implemented and used.
+Faithfulness/groundedness scoring with an LLM-as-judge is intentionally
+**not** implemented in this version; correctness is measured with token F1
+and exact match only. The manual error analysis (`error_analysis/`) covers a
+stratified sample of 70 outputs: an AI-assisted first pass, followed by an
+independent human audit (`error_log_audit_reconciled.csv`).
