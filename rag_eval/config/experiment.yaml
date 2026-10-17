@@ -3,13 +3,9 @@
 # models — only the model adapter differs between runs. Do not vary any
 # of these values per-model.
 #
-# Status: ALL Phase 3B decisions finalized 2026-08-14 — model IDs pinned,
-# trial counts confirmed as-is, prompt template confirmed as-is, metric
-# scope confirmed as proxy-only (no LLM-judge), error-analysis sample set
-# to 30 cases, real-run guard removed with explicit user approval. Real,
-# billed API calls ARE made directly from Computer using credentials the
-# user approved via the secure credential form (see README "Local setup
-# checklist").
+# Status: all settings finalized 2026-08-14 — model IDs pinned, trial
+# counts and prompt template confirmed, metric scope proxy-only (no
+# LLM-judge). Real runs make billed API calls using keys from .env.
 
 seed: 42
 
@@ -53,7 +49,7 @@ generation:
   prompt_template_path: "config/prompt_template.txt"
 
 trials:
-  # Provisional — confirm before a real run (Phase 1 decision #2).
+  # Confirmed 2026-08-14.
   clean_condition: 1
   stress_condition: 3   # applies to: blind, noisy, middle, removed
 
@@ -62,8 +58,7 @@ models:
     provider: anthropic
     # Updated 2026-08-17: switched host from native Anthropic API to OpenRouter
     # (pass-through), because console.anthropic.com's own billing checkout kept
-    # failing and, on retry, asked for an SSN/TIN unrelated to a normal Claude
-    # Sonnet 4.6 API-credit purchase. OpenRouter proxies the SAME model with no
+    # failing. OpenRouter proxies the SAME model with no
     # per-token markup (just a one-time 5.5% fee on the credit top-up) — see
     # https://openrouter.ai/anthropic/claude-sonnet-4.6/api (confirmed 2026-08-17).
     # model_id below is OpenRouter's own slug for this model, NOT Anthropic's
