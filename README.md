@@ -7,6 +7,8 @@
 
 Experiment code and data for **[Diagnosing RAG Failures: A Taxonomy of Failure Modes in Retrieval-Augmented Generation](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7439478)** (Dawit Zeleke Admassu, 2026).
 
+📄 **Read the paper:** [PDF in this repo](paper/diagnosing-rag-failures-ssrn-7439478.pdf) · [SSRN page](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7439478)
+
 The paper defines five ways retrieval-augmented generation (RAG) systems fail and tests three of them empirically. This repository contains the evaluation pipeline, frozen configuration, prompts, dataset provenance, and error-analysis materials behind that validation.
 
 ## The five failure modes
@@ -64,7 +66,7 @@ This is a small, preliminary study: two models, one benchmark family, 90 questio
 
 ```
 .
-├── paper/                       Manuscript PDF, LaTeX source, bibliography
+├── paper/                       The paper (SSRN 7439478) as a PDF
 └── rag_eval/
     ├── config/                  Frozen experiment settings and prompt templates
     ├── data/                    Dataset loaders and provenance manifest (90 item IDs)
