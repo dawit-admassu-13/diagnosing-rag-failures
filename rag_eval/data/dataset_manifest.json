@@ -1,0 +1,165 @@
+{
+  "generated_at_utc": "2026-08-07T04:21:44.436455+00:00",
+  "seed": 42,
+  "n_questions_per_mode": 30,
+  "total_selected_items": 90,
+  "datasets": {
+    "rgb": {
+      "repository_url": "https://github.com/chen700564/RGB",
+      "paper": "https://arxiv.org/abs/2309.01431",
+      "commit": "65ec39e40e7dc9abb50e9bf1b4f32be3f6f16615",
+      "license": "CC BY-NC-SA 4.0 (noncommercial)",
+      "source_file": "en_refine.json",
+      "source_file_note": "en_refine.json is RGB's own refined/recommended variant (fixed incorrect positive/negative documents and corrected some answers vs. en.json), per the RGB repository's README.",
+      "source_file_sha256": "1be6ec4b85364b5590c7683ed4df8d47535ae21bc021bbcd3f44a71579f64bcb",
+      "download_date_utc": "2026-08-06",
+      "used_for_failure_modes": [
+        "retrieval_blindness",
+        "retrieval_noise"
+      ],
+      "used_for_note": "RGB's own evaluation harness derives BOTH 'negative rejection' (-> our retrieval_blindness) and 'noise robustness' (-> our retrieval_noise) tasks from this SAME file, distinguished only by which of positive/negative passages are included in the corpus (RGB's noise_rate parameter). We reproduce that same distinction at the loader level rather than using separate files."
+    },
+    "lost_in_the_middle": {
+      "repository_url": "https://github.com/nelson-liu/lost-in-the-middle",
+      "paper": "https://arxiv.org/abs/2307.03172",
+      "commit": "29b8a6d042ce29abccee3db1a73171a107d7e6af",
+      "license": "see repository LICENSE file (copied to data/raw/lost_in_the_middle/LICENSE)",
+      "source_file": "nq-open-10_total_documents_gold_at_4.jsonl.gz",
+      "source_file_note": "Used the '10_total_documents, gold_at_4' bucket only (1 gold + 9 distractor/padding passages per question) out of the repo's several available buckets (gold_at_0/4/9, 10/20/30-document variants, oracle) \u2014 our own condition-builder logic (conditions/builders.py) re-derives which documents are used and where gold is placed, so the position label baked into a specific file's native ctxs ordering is not load-bearing; any of the three gold_at_* files for the 10-document bucket yields the identical underlying document set.",
+      "source_file_sha256": "f8425253dafc19cd9de31c06ab6c8b57d4da2bf48b8ea2d0790b805fb3aa1968",
+      "download_date_utc": "2026-08-06",
+      "used_for_failure_modes": [
+        "evidence_ignorance"
+      ]
+    }
+  },
+  "selected_item_ids": {
+    "retrieval_blindness": [
+      "rgb-rb-10",
+      "rgb-rb-2",
+      "rgb-rb-216",
+      "rgb-rb-46",
+      "rgb-rb-288",
+      "rgb-rb-233",
+      "rgb-rb-251",
+      "rgb-rb-87",
+      "rgb-rb-91",
+      "rgb-rb-81",
+      "rgb-rb-28",
+      "rgb-rb-29",
+      "rgb-rb-283",
+      "rgb-rb-197",
+      "rgb-rb-298",
+      "rgb-rb-120",
+      "rgb-rb-37",
+      "rgb-rb-65",
+      "rgb-rb-153",
+      "rgb-rb-109",
+      "rgb-rb-32",
+      "rgb-rb-181",
+      "rgb-rb-53",
+      "rgb-rb-151",
+      "rgb-rb-115",
+      "rgb-rb-62",
+      "rgb-rb-157",
+      "rgb-rb-13",
+      "rgb-rb-95",
+      "rgb-rb-134"
+    ],
+    "retrieval_noise": [
+      "rgb-rn-186",
+      "rgb-rn-137",
+      "rgb-rn-292",
+      "rgb-rn-43",
+      "rgb-rn-288",
+      "rgb-rn-134",
+      "rgb-rn-269",
+      "rgb-rn-36",
+      "rgb-rn-24",
+      "rgb-rn-228",
+      "rgb-rn-44",
+      "rgb-rn-215",
+      "rgb-rn-63",
+      "rgb-rn-264",
+      "rgb-rn-257",
+      "rgb-rn-58",
+      "rgb-rn-119",
+      "rgb-rn-293",
+      "rgb-rn-85",
+      "rgb-rn-76",
+      "rgb-rn-207",
+      "rgb-rn-275",
+      "rgb-rn-2",
+      "rgb-rn-118",
+      "rgb-rn-284",
+      "rgb-rn-194",
+      "rgb-rn-206",
+      "rgb-rn-280",
+      "rgb-rn-3",
+      "rgb-rn-294"
+    ],
+    "evidence_ignorance": [
+      "litm-ad3c87c3daaa",
+      "litm-18501b00aa1e",
+      "litm-7462f6e0c468",
+      "litm-b6ab7d542384",
+      "litm-69eb2a43266a",
+      "litm-e7e746ce5efd",
+      "litm-c0bfc9f0c8a1",
+      "litm-a3706d399387",
+      "litm-d27b2f67eb52",
+      "litm-03e024972691",
+      "litm-75b7c1bd7539",
+      "litm-f7075ce6befd",
+      "litm-a4d679fcc47d",
+      "litm-95b80c3728cc",
+      "litm-4f2160cdcc70",
+      "litm-ee220ee76e23",
+      "litm-85b78286d1d4",
+      "litm-f150aad26ac3",
+      "litm-9326f5195dd1",
+      "litm-d78044f4432b",
+      "litm-86ec94c3dfd0",
+      "litm-ecc67fe85d33",
+      "litm-53bcd3279a72",
+      "litm-71917840a0b4",
+      "litm-383ca1d31c58",
+      "litm-c5a2a8452645",
+      "litm-3f466c61b4b0",
+      "litm-c8d5901f37c5",
+      "litm-7ec1db0d0c37",
+      "litm-2945d0775c04"
+    ]
+  },
+  "sampling_method": {
+    "description": "Each failure mode's 30-item sample is drawn independently with random.Random(f'{seed}-{failure_mode_key}').sample(valid_items, n_questions) over that dataset's full pool of valid items (RGB: 300 items shared by both retrieval_blindness and retrieval_noise, drawn as two independent 30-item samples from the same pool; Lost in the Middle: 2655 items for evidence_ignorance). Per-item gold-passage selection among an item's multiple eligible positives (RGB only) additionally uses a per-item seeded RNG (f'{seed}-{failure_mode}-{item_id}-goldpick') rather than always taking the first listed positive.",
+    "failure_mode_keys_used_in_seed_string": {
+      "retrieval_blindness": "retrieval_blindness",
+      "retrieval_noise": "retrieval_noise",
+      "evidence_ignorance": "evidence_ignorance"
+    }
+  },
+  "inclusion_exclusion_rules": {
+    "rgb": [
+      "query must be non-empty",
+      "positive (gold-supporting passages) list must be non-empty",
+      "negative (background/distractor passages) list must be non-empty",
+      "answer field must contain at least one non-empty answer string"
+    ],
+    "lost_in_the_middle": [
+      "question must be non-empty",
+      "answers list must contain at least one non-empty string",
+      "ctxs must contain exactly one entry with isgold=true",
+      "ctxs must contain at least 2 entries total (gold + >=1 distractor/padding)"
+    ]
+  },
+  "exclusions": {
+    "rgb": "0 of 300 en_refine.json records were excluded by the rules above \u2014 every record has a non-empty query, >=5 positive, >=5 negative, and >=1 non-empty answer string (verified directly against the downloaded file).",
+    "lost_in_the_middle": "0 of 2655 records in the gold_at_4/10_total_documents file were excluded by the rules above \u2014 every record has exactly one isgold=true ctx and a non-empty answers list (verified directly against the downloaded file)."
+  },
+  "known_limitations": [
+    "RGB and Lost in the Middle are both English-language, Wikipedia/news-centric public benchmarks, not an enterprise-style corpus \u2014 results characterize failure-mode behavior on these specific public distributions, not any particular production RAG system.",
+    "Lost in the Middle's reference_answer uses only answers[0] (the first of possibly several acceptable answer strings) for exact-match/F1 scoring \u2014 a documented simplification, not a defect in the source data.",
+    "RGB's retrieval_blindness and retrieval_noise samples are drawn independently from the same 300-item pool (not guaranteed disjoint) \u2014 a deliberate, documented design choice, since the two failure modes are analyzed separately and never compared item-for-item."
+  ]
+}

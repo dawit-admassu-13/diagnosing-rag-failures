@@ -1,0 +1,129 @@
+# Frozen experimental configuration for the RAG failure-mode empirical
+# validation (v2). Every field here must be identical across all three
+# models — only the model adapter differs between runs. Do not vary any
+# of these values per-model.
+#
+# Status: ALL Phase 3B decisions finalized 2026-08-14 — model IDs pinned,
+# trial counts confirmed as-is, prompt template confirmed as-is, metric
+# scope confirmed as proxy-only (no LLM-judge), error-analysis sample set
+# to 30 cases, real-run guard removed with explicit user approval. Real,
+# billed API calls ARE made directly from Computer using credentials the
+# user approved via the secure credential form (see README "Local setup
+# checklist").
+
+seed: 42
+
+dataset:
+  # Decision (2026-08-06): RGB for Retrieval Noise + Retrieval Blindness,
+  # Lost in the Middle for Evidence Ignorance.
+  sources:
+    retrieval_noise: rgb
+    retrieval_blindness: rgb
+    evidence_ignorance: lost_in_the_middle
+  n_questions_per_mode: 30
+  raw_data_dir: "data/raw"   # populated by scripts/fetch_datasets or manual download — see README "Dataset setup"
+  # Exact filenames as downloaded from the upstream repos — see data/dataset_manifest.json
+  # for provenance (repo URL, commit hash, download date, file hash).
+  rgb_source_file: "en_refine.json"
+  lost_in_the_middle_source_file: "nq-open-10_total_documents_gold_at_4.jsonl.gz"
+
+embedding:
+  # sentence-transformers/all-MiniLM-L6-v2 — see README "Embedding model
+  # choice" for the justification. Change only this field to swap models;
+  # nothing else in the codebase hardcodes a model name.
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  device: "cpu"
+  normalize: true
+
+retrieval:
+  # Exact, deterministic flat cosine-similarity search (retrieval/index.py).
+  # No managed vector service, no approximate search.
+  index_type: "flat_numpy"
+  top_k: 5
+
+chunking:
+  # RGB and Lost in the Middle ship pre-chunked passages; no additional
+  # chunking is applied. Documented here for the record / reproducibility.
+  strategy: "dataset_native_passages"
+  max_tokens_per_chunk: null
+
+generation:
+  temperature: 0.0
+  max_output_tokens: 200
+  prompt_template_path: "config/prompt_template.txt"
+
+trials:
+  # Provisional — confirm before a real run (Phase 1 decision #2).
+  clean_condition: 1
+  stress_condition: 3   # applies to: blind, noisy, middle, removed
+
+models:
+  claude:
+    provider: anthropic
+    # Updated 2026-08-17: switched host from native Anthropic API to OpenRouter
+    # (pass-through), because console.anthropic.com's own billing checkout kept
+    # failing and, on retry, asked for an SSN/TIN unrelated to a normal Claude
+    # Sonnet 4.6 API-credit purchase. OpenRouter proxies the SAME model with no
+    # per-token markup (just a one-time 5.5% fee on the credit top-up) — see
+    # https://openrouter.ai/anthropic/claude-sonnet-4.6/api (confirmed 2026-08-17).
+    # model_id below is OpenRouter's own slug for this model, NOT Anthropic's
+    # native model-id string (those differ). Host set via CLAUDE_BASE_URL in
+    # .env; see README "Claude host setup". If direct Anthropic access is
+    # restored later, revert model_id to "claude-sonnet-4-6" and remove
+    # base_url_env below — do not run some trials native and some pass-through.
+    model_id: "anthropic/claude-sonnet-4.6"
+    base_url_env: "CLAUDE_BASE_URL"
+    api_key_env: "CLAUDE_API_KEY"
+  gpt:
+    provider: openai
+    model_id: "gpt-4.1"
+    api_key_env: "OPENAI_API_KEY"
+  llama:
+    provider: llama_openai_compatible
+    # Updated 2026-08-17: switched host to OpenRouter (pass-through), same account
+    # already funded/working for Claude. History: started on Groq (free tier), which
+    # hit a hard 100,000-tokens/day cap after 228/450 real calls (2026-08-15/16); by
+    # 2026-08-17 Groq had also fully REMOVED "llama-3.3-70b-versatile" from its model
+    # catalog (confirmed via GET /openai/v1/models — no meta-llama chat model remains),
+    # so Groq is no longer viable at all, not just quota-limited. DeepInfra was tried
+    # next but requires a manual balance top-up (new payment site) the user wants to
+    # avoid. OpenRouter serves this exact model as "meta-llama/llama-3.3-70b-instruct"
+    # at ~$0.10/M input + $0.32/M output tokens (confirmed 2026-08-17 via GET
+    # https://openrouter.ai/api/v1/models) — no new account/payment needed.
+    # All 450 Llama calls are being (re)done on OpenRouter for backend consistency —
+    # the 229 real completions previously obtained from Groq are NOT reused (that
+    # model no longer exists on Groq and must not be mixed with any other host under
+    # the same "Llama" label); the raw files were moved to
+    # logs/raw_calls_archive/llama_groq_2026-08-15_16/ (not used as evidence).
+    # Host set via LLAMA_BASE_URL=https://openrouter.ai/api/v1 in .env; see README
+    # "Llama host setup".
+    model_id: "meta-llama/llama-3.3-70b-instruct"
+    base_url_env: "LLAMA_BASE_URL"
+    api_key_env: "LLAMA_API_KEY"
+
+no_context_baseline:
+  # Added 2026-08-26: a true no-RAG control condition testing whether
+  # Claude Sonnet 4.6 and Llama 3.3 70B Instruct can answer from parametric
+  # knowledge alone, with ZERO retrieved context (unlike "blind"/"removed",
+  # which still include distractor/padding passages — this includes none
+  # at all). Cross-mode: applies to all 90 base items regardless of which
+  # failure_mode they were sampled for, not one more condition nested under
+  # CONDITIONS_BY_MODE. Reuses the exact same 90 base questions (30 per
+  # mode), the same 2 models, and the same temperature/max_output_tokens
+  # frozen under generation: above. 1 trial per question per model = 180
+  # real API calls. Retrieval metrics (recall/precision/nDCG/gold_rank) are
+  # left null for these rows — retrieval never runs for this condition, so
+  # there is nothing real to report, and eval/run_eval.py already leaves
+  # them null whenever a raw call has no retrieval_log_path. Driven by
+  # scripts/run_no_context.py (not runner/run_generation.py, which is wired
+  # to CONDITIONS_BY_MODE's per-mode retrieval step).
+  prompt_template_path: "config/prompt_template_no_context.txt"
+  trials: 1
+  models: ["claude", "llama"]
+
+output:
+  raw_calls_dir: "logs/raw_calls"
+  retrieval_log_path: "logs/retrieval_log.jsonl"           # consolidated JSONL ledger, real runs only
+  results_aggregated_path: "logs/results_aggregated.csv"
+  dry_run_dir: "logs/dry_run"
+  dry_run_retrieval_log_path: "logs/dry_run/retrieval_log_dryrun.jsonl"

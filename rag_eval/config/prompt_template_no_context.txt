@@ -1,0 +1,5 @@
+Answer the following question using your own knowledge. If you don't know the answer, say "I don't know based on the available information" rather than guessing.
+
+Question: {question}
+
+Answer:
