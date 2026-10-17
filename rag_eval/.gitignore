@@ -1,0 +1,42 @@
+# Local secrets — never commit real API keys.
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Local copies of third-party raw datasets — not ours to redistribute.
+# (Documented instead in data/dataset_manifest.json: repo URLs, commit
+# hashes, download date, file hashes — the manifest is what's committed,
+# not the raw data itself.)
+data/raw/**
+!data/raw/**/.gitkeep
+
+# Real-run outputs: contain real model outputs / API-derived data, and can
+# be regenerated from a real run at any time. Never committed.
+logs/raw_calls/**
+logs/retrieval/**
+logs/retrieval_log.jsonl
+logs/results_aggregated.csv
+logs/results_ablation_sensitivity.csv
+
+# Dry-run per-item detail (retrieval JSON + per-call mock-answer JSON) is
+# regenerable in seconds via `python -m runner.run_generation --dry-run`
+# and gets large (1000+ tiny files for the real 90-item sample). The
+# consolidated retrieval ledger + aggregated CSVs are kept as committed
+# verification evidence (see deliverable C), so only the bulky per-item
+# directories are excluded here.
+logs/dry_run/retrieval/**
+logs/dry_run/claude/**
+logs/dry_run/gpt/**
+logs/dry_run/llama/**
+logs/full_claude_run.log
+logs/full_llama_run_chunk*.log
+
+# Archived raw calls from a since-abandoned host (e.g. Groq after it removed
+# the Llama 3.3 70B model from its catalog) -- kept locally for traceability
+# only, explicitly never used as experimental evidence. Same "never commit
+# real-run outputs" rule as logs/raw_calls/** above.
+logs/raw_calls_archive/**
